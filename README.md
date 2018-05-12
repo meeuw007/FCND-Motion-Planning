@@ -1,6 +1,9 @@
 Explanation of provided code
 
 
+
+
+
 The last line of code starts the drone (in the “_main_” part of the code).
 
 The state_callback function elevates the drone into the different states: At first the drone goes to the arming_transition (because the ‘self.in_mission’ attribute is initialized to true in line 32, and the first state of the drone is initialized to Manual).
@@ -30,7 +33,14 @@ When all waypoints are used, the local_position_callback function calls the land
 Finally the velocity_callback function transitions the drone into the disarming state.
 
 
+
+
+
+
+
 Implementation of Planning Algorithm
+
+
 
 
 1. The python csv module (line 3) is imported and used to put the first row of colliders.csv in an array. I then simply assign lat0 to the first element of this array, and lon0 to the second.
