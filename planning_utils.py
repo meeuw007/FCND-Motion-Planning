@@ -1,7 +1,41 @@
+#####
 from enum import Enum
 from queue import PriorityQueue
 import numpy as np
+import math
 
+
+def point(p):
+        return np.array([p[0], p[1], 1.]).reshape(1, -1)
+
+def collinearity_check(p1, p2, p3, epsilon=1e-6):   
+        m = np.concatenate((p1, p2, p3), 0)
+        det = np.linalg.det(m)
+        return abs(det) < epsilon
+
+def prune_path(path):
+        pruned_path = [p for p in path]
+        # TODO: prune the path!
+    
+        i = 0
+        while i < len(pruned_path) - 2:
+            p1 = point(pruned_path[i])
+            p2 = point(pruned_path[i+1])
+            p3 = point(pruned_path[i+2])
+        
+            # If the 3 points are in a line remove
+            # the 2nd point.
+            # The 3rd point now becomes and 2nd point
+            # and the check is redone with a new third point
+            # on the next iteration.
+            if collinearity_check(p1, p2, p3):
+            # Something subtle here but we can mutate
+            # `pruned_path` freely because the length
+            # of the list is check on every iteration.
+                pruned_path.remove(pruned_path[i+1])
+            else:
+                i += 1 
+        return pruned_path
 
 def create_grid(data, drone_altitude, safety_distance):
     """
@@ -55,7 +89,10 @@ class Action(Enum):
     EAST = (0, 1, 1)
     NORTH = (-1, 0, 1)
     SOUTH = (1, 0, 1)
-
+    NORTHWEST = (-1, -1 , math.sqrt(2))    
+    NORTHEAST = (-1, 1 , math.sqrt(2))
+    SOUTHEAST = (1, 1 , math.sqrt(2))
+    SOUTHWEST = (1, -1 , math.sqrt(2))	
     @property
     def cost(self):
         return self.value[2]
@@ -76,6 +113,14 @@ def valid_actions(grid, current_node):
     # check if the node is off the grid or
     # it's an obstacle
 
+    if x - 1 < 0 or y - 1 < 0 or grid[x - 1, y - 1] == 1:
+        valid_actions.remove(Action.NORTHWEST)
+    if x - 1 < 0 or y + 1 >  m or grid[x - 1, y + 1] == 1:
+        valid_actions.remove(Action.NORTHEAST)
+    if x + 1 > n or y + 1 >  m or grid[x + 1, y + 1] == 1:
+        valid_actions.remove(Action.SOUTHEAST)
+    if x + 1 > n or y - 1 < 0 or grid[x + 1, y - 1] == 1:
+        valid_actions.remove(Action.SOUTHWEST)
     if x - 1 < 0 or grid[x - 1, y] == 1:
         valid_actions.remove(Action.NORTH)
     if x + 1 > n or grid[x + 1, y] == 1:
@@ -142,5 +187,5 @@ def a_star(grid, h, start, goal):
 
 
 def heuristic(position, goal_position):
-    return np.linalg.norm(np.array(position) - np.array(goal_position))
-
+    return np.linalg.norm(np.array(position) - np.array(goal_position))#
+######
