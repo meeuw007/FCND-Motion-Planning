@@ -1,82 +1,59 @@
-## Project: 3D Motion Planning
-![Quad Image](./misc/enroute.png)
-
----
+Explanation of provided code
 
 
-# Required Steps for a Passing Submission:
-1. Load the 2.5D map in the colliders.csv file describing the environment.
-2. Discretize the environment into a grid or graph representation.
-3. Define the start and goal locations.
-4. Perform a search using A* or other search algorithm.
-5. Use a collinearity test or ray tracing method (like Bresenham) to remove unnecessary waypoints.
-6. Return waypoints in local ECEF coordinates (format for `self.all_waypoints` is [N, E, altitude, heading], where the drone’s start location corresponds to [0, 0, 0, 0].
-7. Write it up.
-8. Congratulations!  Your Done!
+The last line of code starts the drone (in the “_main_” part of the code).
 
-## [Rubric](https://review.udacity.com/#!/rubrics/1534/view) Points
-### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
+The state_callback function elevates the drone into the different states: At first the drone goes to the arming_transition (because the ‘self.in_mission’ attribute is initialized to true in line 32, and the first state of the drone is initialized to Manual).
 
----
-### Writeup / README
+Then (in the Arming state) the planning fuction is called, and the drone goes to the Planning state. Here the target altitude and safe distance for the drone to keep is set, and data from the colliders csv is read. From this data a grid is made calling the function create_grid from planning_utils.
 
-#### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  
+create_grid makes a matrix representing a 2D configuration space with 0’s representing free space (including space a safe distance above obstacles), and 1’s representing obstacles (or space too close to obstacles).
 
-You're reading it! Below I describe how I addressed each rubric point and where in my code each point is handled.
+The start position of the plan is set to the center of the map and the goal position is set to the start position plus 10 grid cells to the right, and 10 grid cells upwards.
 
-### Explain the Starter Code
+The function a_star from planning_utils is called to plan a path from goal to start, which is then converted to waypoints, which are sent to the simulator.
 
-#### 1. Explain the functionality of what's provided in `motion_planning.py` and `planning_utils.py`
-These scripts contain a basic planning implementation that includes...
+a_star finds a path by expanding the gridcells one by one, checking for free space, keeping track of all possible routes and respective costs, and returning the lowest cost path.
 
-And here's a lovely image of my results (ok this image has nothing to do with it, but it's a nice example of how to include images in your writeup!)
-![Top Down View](./misc/high_up.png)
+The state_callback function elevates the drone from the Planning state to the Take off state.
 
-Here's | A | Snappy | Table
---- | --- | --- | ---
-1 | `highlight` | **bold** | 7.41
-2 | a | b | c
-3 | *italic* | text | 403
-4 | 2 | 3 | abcd
+When the drone is within 95% of the target altitude the local_position_callback function elevates the drone into the Waypoint state.
 
-### Implementing Your Path Planning Algorithm
+The waypoint_transition functions ‘pops’ the first waypoint of the list and sets it as target position.
 
-#### 1. Set your global home position
-Here students should read the first line of the csv file, extract lat0 and lon0 as floating point values and use the self.set_home_position() method to set global home. Explain briefly how you accomplished this in your code.
+The local_position_callback function calls the waypoint_transition function again when the norm of the local_position vector is within 1.0 of the norm of the target_position vector, and the waypoint_transition function pops the next waypoint.
+
+In the starter code the goal position is ten cells to the right, and ten cells up. Sinds the a_star function in planning_utils can only go up and right (not diagonal) the drone will follow a zig zag path.
+
+When all waypoints are used, the local_position_callback function calls the landing_transition function and the drone goes into the Landing state.
+
+Finally the velocity_callback function transitions the drone into the disarming state.
 
 
-And here is a lovely picture of our downtown San Francisco environment from above!
-![Map of SF](./misc/map.png)
+Implementation of Planning Algorithm
 
-#### 2. Set your current local position
-Here as long as you successfully determine your local position relative to global home you'll be all set. Explain briefly how you accomplished this in your code.
+1. The python csv module (line 3) is imported and used to put the first row of colliders.csv in an array. I then simply assign lat0 to the first element of this array, and lon0 to the second.
 
+With these values self.set_home_position() sets the home position (line 151).
 
-Meanwhile, here's a picture of me flying through the trees!
-![Forest Flying](./misc/in_the_trees.png)
+2. Using the geodetic home coordinates found, and using self.latitude/self.longitude for the drone coordinates, in combination with the global_to_local() function I find the local position relative to global home.
 
-#### 3. Set grid start position from local position
-This is another step in adding flexibility to the start location. As long as it works you're good to go!
+3. In line 184 I set the grid_start to the local position of the Drone.
 
-#### 4. Set grid goal position from geodetic coords
-This step is to add flexibility to the desired goal location. Should be able to choose any (lat, lon) within the map and have it rendered to a goal location on the grid.
+4. In line 193 and 194 the grid_goal is set to the corner of Washington Str and Battery Str (arbitrary choice). In the code is two lines provide to set the grid_goal back to the home position (uncomment line 197 and 198 (and comment line 193 and 194 of course)). grid_goal can be set to any latitude and longitude within the map.
 
-#### 5. Modify A* to include diagonal motion (or replace A* altogether)
-Minimal requirement here is to modify the code in planning_utils() to update the A* implementation to include diagonal motions on the grid that have a cost of sqrt(2), but more creative solutions are welcome. Explain the code you used to accomplish this step.
+5. To include diagonal motion I first define 4 more actions in the class Action (in planning_utils.py). I import the python module math, and use it to calculate the square root of 2 which I assign as cost to the four new actions (NorthWest, SouthWest, SouthEast, and NorthEast). I also expand the if statements in valid_actions, to check if the four new actions, when implemented, run into an obstacle.
 
-#### 6. Cull waypoints 
-For this step you can use a collinearity test or ray tracing method like Bresenham. The idea is simply to prune your path of unnecessary waypoints. Explain the code you used to accomplish this step.
+6. To prune the path I added the function prune_path(path) to planning_utils.py. Also added are point(p) and collinearity_check() which are used by prune_path. In prune_path three waypoints are checked if they are in line by checking if the determinant of the matrix that includes the coordinates of these three points is 0 (or nearly 0). Then one of those points is removed and the remaining two checked against another third one, and so on. prune_path is called in motion_planning.py in line 227
 
 
 
-### Execute the flight
-#### 1. Does it work?
-It works!
 
-### Double check that you've met specifications for each of the [rubric](https://review.udacity.com/#!/rubrics/1534/view) points.
-  
-# Extra Challenges: Real World Planning
 
-For an extra challenge, consider implementing some of the techniques described in the "Real World Planning" lesson. You could try implementing a vehicle model to take dynamic constraints into account, or implement a replanning method to invoke if you get off course or encounter unexpected obstacles.
+
+
+
+
+
 
 
