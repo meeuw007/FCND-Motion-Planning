@@ -1,4 +1,5 @@
-Explanation of provided code
+Explanation of provided code:
+------------------------------------------------------------------------
 
 
 
@@ -38,14 +39,13 @@ Finally the velocity_callback function transitions the drone into the disarming 
 
 
 
-Implementation of Planning Algorithm
+Implementation of Planning Algorithm:
+-------------------------------------------------------------------------
 
 
 
 
-1. The python csv module (line 3) is imported and used to put the first row of colliders.csv in an array. I then simply assign lat0 to the first element of this array, and lon0 to the second.
-
-With these values self.set_home_position() sets the home position (line 151).
+1. The python csv module (line 3) is imported and used to put the first row of colliders.csv in an array. I then simply assign lat0 to the first element of this array, and lon0 to the second.	With these values self.set_home_position() sets the home position (line 151).
 
 2. Using the geodetic home coordinates found, and using self.latitude/self.longitude for the drone coordinates, in combination with the global_to_local() function I find the local position relative to global home.
 
